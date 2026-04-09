@@ -1,0 +1,58 @@
+# Example docker-compose.yml for striptracks-standalone
+# Copy this file and customize for your setup.
+#
+# Usage:
+#   docker compose run --rm striptracks              # Process once and exit
+#   docker compose up -d striptracks                 # Watch mode (set STRIPTRACKS_MODE=watch)
+#   docker compose run --rm striptracks --test       # Validate config
+#   docker compose run --rm striptracks --dry-run    # Preview without changes
+
+services:
+  striptracks:
+    build:
+      context: .
+      args:
+        MOD_VERSION: dev
+    # Or use the published image:
+    # image: thecaptain989/radarr-striptracks:latest
+    environment:
+      # Required
+      STRIPTRACKS_DIR: /movies
+      STRIPTRACKS_AUDIO: ":eng:und"
+
+      # Subtitles (empty = strip all embedded subs)
+      # STRIPTRACKS_SUBS: ":eng"
+
+      # Run mode: run (default), wait, watch
+      # STRIPTRACKS_MODE: run
+      # STRIPTRACKS_WATCH_DELAY: 60          # seconds to wait for file writes to finish
+      # STRIPTRACKS_CACHE_REFRESH: 30        # minutes between API cache refreshes (watch mode)
+
+      # Radarr API (enables auto language detection, :org, and rescans)
+      # RADARR_URL: http://radarr:7878
+      # RADARR_API_KEY: your-radarr-api-key
+
+      # Sonarr API
+      # SONARR_URL: http://sonarr:8989
+      # SONARR_API_KEY: your-sonarr-api-key
+
+      # Behavior
+      # STRIPTRACKS_DRY_RUN: "false"
+      # STRIPTRACKS_REORDER: "false"
+      # STRIPTRACKS_EXTENSIONS: "mkv,mp4,avi,wmv,flv,mov,webm"
+      # STRIPTRACKS_EXCLUDE: "*/extras/*,*/featurettes/*"
+      # STRIPTRACKS_PRIORITY: medium         # idle, low, medium, high
+      # STRIPTRACKS_DEBUG: 0                 # 0-3
+
+      # State tracking (skip already-processed files on re-run)
+      # STRIPTRACKS_STATE_FILE: /config/striptracks.state
+      # Set to disable: --no-state flag at runtime
+    volumes:
+      - /path/to/movies:/movies
+      # - /path/to/tv:/tv                   # add more media volumes as needed
+      - striptracks-config:/config           # persists log and state file
+    # For watch mode, keep the container running:
+    # restart: unless-stopped
+
+volumes:
+  striptracks-config:

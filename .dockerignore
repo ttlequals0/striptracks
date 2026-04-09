@@ -1,0 +1,13 @@
+# Docker ignore file
+.git
+.gitignore
+.github
+.gitattributes
+.vscode
+.assets
+hotio
+wsl
+READMETEMPLATE.md
+README.md
+SECURITY.md
+bash_unit
