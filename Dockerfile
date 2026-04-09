@@ -1,7 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM ghcr.io/linuxserver/baseimage-alpine:latest
+FROM ghcr.io/linuxserver/baseimage-alpine:3.21
 
+# Read version from VERSION file at build time
+COPY VERSION /tmp/VERSION
+RUN MOD_VERSION=$(cat /tmp/VERSION | tr -d '[:space:]') && \
+  echo "MOD_VERSION=${MOD_VERSION}" > /tmp/build_env
 ARG MOD_VERSION=unknown
 
 LABEL org.opencontainers.image.title=striptracks-standalone
@@ -22,10 +26,11 @@ RUN apk add --no-cache \
 # Copy script and modules
 COPY striptracks-standalone.sh /usr/local/bin/striptracks.sh
 COPY lib/ /usr/local/bin/lib/
+COPY VERSION /usr/local/bin/VERSION
 RUN chmod +x /usr/local/bin/striptracks.sh
 
-# Add version to script
-RUN MOD_VERSION="${MOD_VERSION:-unknown}" && \
+# Inject version into script
+RUN MOD_VERSION=$(cat /usr/local/bin/VERSION | tr -d '[:space:]') && \
   sed -i -e "s/{{VERSION}}/$MOD_VERSION/" /usr/local/bin/lib/cli.sh
 
 ENTRYPOINT ["/usr/local/bin/striptracks.sh"]

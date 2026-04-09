@@ -9,12 +9,7 @@
 
 services:
   striptracks:
-    build:
-      context: .
-      args:
-        MOD_VERSION: dev
-    # Or use the published image:
-    # image: thecaptain989/radarr-striptracks:latest
+    image: ttlequals0/striptracks:latest
     environment:
       # Required
       STRIPTRACKS_DIR: /movies

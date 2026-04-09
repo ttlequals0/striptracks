@@ -191,8 +191,10 @@ function watch_directory {
         striptracks_error_count=$((striptracks_error_count + 1))
         echo "Warn|Error processing: $filepath (exit code: $return)" | log
       else
-        local newfile="${filepath%.*}.mkv"
-        record_processed "$newfile"
+        if [ "$striptracks_dry_run" != "true" ]; then
+          local newfile="${filepath%.*}.mkv"
+          record_processed "$newfile"
+        fi
       fi
     fi
   done < <(inotifywait -m -r -e close_write,moved_to --format '%w%f' "$dir" 2>/dev/null)
@@ -222,7 +224,7 @@ function process_directory {
   IFS=',' read -ra exts <<< "$striptracks_extensions"
   for ext in "${exts[@]}"; do
     if $first; then
-      find_args+=(-name "*.${ext}")
+      find_args+=(-iname "*.${ext}")
       first=false
     else
       find_args+=(-o -name "*.${ext}")
@@ -263,9 +265,11 @@ function process_directory {
       striptracks_error_count=$((striptracks_error_count + 1))
       echo "Warn|Error processing: $file (exit code: $return)" | log
     else
-      # Record in state file (must be in parent, not subshell)
-      local newfile="${file%.*}.mkv"
-      record_processed "$newfile"
+      # Record in state file (must be in parent, not subshell). Skip in dry-run.
+      if [ "$striptracks_dry_run" != "true" ]; then
+        local newfile="${file%.*}.mkv"
+        record_processed "$newfile"
+      fi
     fi
   done < <(find "$dir" -type f \( "${find_args[@]}" \) "${exclude_args[@]}" -print0 | sort -z)
 }

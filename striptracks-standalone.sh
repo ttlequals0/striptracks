@@ -54,6 +54,12 @@ function main {
   check_log
   check_required_binaries
   check_watch_dependencies
+
+  # Startup banner
+  local ver="${striptracks_ver/\{\{VERSION\}\}/unknown}"
+  echo "Info|striptracks-standalone v${ver}" | log
+  echo_ansi "Info|striptracks-standalone v${ver}"
+
   log_first_debug_messages
 
   # Test mode: validate and exit
@@ -79,10 +85,19 @@ function main {
   # Run mode handling
   case "$striptracks_run_mode" in
     wait)
-      local message="Info|Processing complete. Press Enter to exit..."
+      local message="Info|Processing complete. Container staying up (wait mode)."
       echo "$message" | log
       echo_ansi "$message"
-      read -r
+      # Use read if interactive terminal, otherwise sleep forever (for detached Docker)
+      if [ -t 0 ]; then
+        echo_ansi "Info|Press Enter to exit..."
+        read -r
+      else
+        # Trap SIGTERM/SIGINT for graceful shutdown
+        trap 'echo "Info|Received shutdown signal" | log; end_script 0' INT TERM
+        sleep infinity &
+        wait $!
+      fi
       ;;
     watch)
       if [ "$striptracks_mode" != "directory" ]; then

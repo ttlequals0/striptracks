@@ -52,8 +52,11 @@ function log {(
     line="$(printf '%s' "$line" | strip_ansi_codes)"
 
     # shellcheck disable=2046
-    builtin echo $(date +"%Y-%m-%d %H:%M:%S.%1N")"|[$striptracks_pid]$line" >>"$striptracks_log"
-    local filesize=$(stat -c %s "$striptracks_log")
+    local formatted="$(date +"%Y-%m-%d %H:%M:%S.%1N")|[$striptracks_pid]$line"
+    builtin echo "$formatted" >>"$striptracks_log" 2>/dev/null || true
+    # Write to stderr for Docker log collection (stdout is consumed by the pipe)
+    builtin echo "$formatted" >&2
+    local filesize=$(stat -c %s "$striptracks_log" 2>/dev/null || echo 0)
     if [ $filesize -gt $striptracks_maxlogsize ]; then
       for i in $(seq $((striptracks_maxlog-1)) -1 0); do
         [ -f "${striptracks_log::-4}.$i.txt" ] && mv "${striptracks_log::-4}."{$i,$((i+1))}".txt"
@@ -64,16 +67,22 @@ function log {(
   done
 )}
 function check_log {
-  # Check that log path exists
-  if [ ! -d "$(dirname "$striptracks_log")" ]; then
-    [ $striptracks_debug -ge 1 ] && echo_ansi "Debug|Log file path does not exist: '$(dirname "$striptracks_log")'. Using log file in current directory."
-    export striptracks_log=./striptracks.txt
+  # Create log directory if it doesn't exist
+  local logdir="$(dirname "$striptracks_log")"
+  if [ ! -d "$logdir" ]; then
+    mkdir -p "$logdir" 2>/dev/null || {
+      [ $striptracks_debug -ge 1 ] && echo_ansi "Debug|Cannot create log directory '$logdir'. Using log file in current directory."
+      export striptracks_log=./striptracks.txt
+    }
   fi
 
-  # Check that the log file exists
+  # Create log file if it doesn't exist
   if [ ! -f "$striptracks_log" ]; then
-    echo_ansi "Info|Creating a new log file: $striptracks_log"
-    touch "$striptracks_log"
+    touch "$striptracks_log" 2>/dev/null || {
+      echo_ansi "Warn|Cannot create log file '$striptracks_log'. Using current directory."
+      export striptracks_log=./striptracks.txt
+      touch "$striptracks_log"
+    }
   fi
 
   # Check that the log file is writable
